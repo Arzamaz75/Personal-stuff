@@ -36,7 +36,7 @@ function DropBox-Upload {
         [Alias("f")]
         [string]$SourceFilePath
     ) 
-    $DropBoxAccessToken = "DROPBOXTOKEN"   # Replace with your DropBox Access Token
+    $DropBoxAccessToken = "sl.BzdaQVSssY9NeqBcl5it9uncoGmXd3PRzpWR677BzWPy2JWq8bPq_z66JUa3aBQDAGRZ-lU1h8BGSOyy1tprBi3d09sFwDbqVx8tMVF-H3mYCZjfC3LpRy51RplLKd0AZ4JwYoVlWcQw0Kk"   # Replace with your DropBox Access Token
     $outputFile = Split-Path $SourceFilePath -leaf
     $TargetFilePath = "/$outputFile"
     $arg = '{ "path": "' + $TargetFilePath + '", "mode": "add", "autorename": true, "mute": false }'
