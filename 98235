@@ -1,0 +1,39 @@
+dir C:\Users | select Name | Export-Csv -Path C:\users\$env:USERNAME\users.csv -NoTypeInformation
+$list=Test-Path C:\users\$env:USERNAME\users.csv
+if ($list) {
+    Import-CSV -Path C:\users\$env:USERNAME\users.csv -Header Name | foreach {
+        Remove-Item -path "C:\Users\$($_.Name)\AppData\Local\Mozilla\Firefox\Profiles\*.default*\cache\*" -Recurse -Force -EA SilentlyContinue
+        Remove-Item -path "C:\Users\$($_.Name)\AppData\Local\Mozilla\Firefox\Profiles\*.default*\cache2\entries\*" -Recurse -Force -EA SilentlyContinue
+        Remove-Item -path "C:\Users\$($_.Name)\AppData\Local\Mozilla\Firefox\Profiles\*.default*\thumbnails\*" -Recurse -Force -EA SilentlyContinue
+        Remove-Item -path "C:\Users\$($_.Name)\AppData\Local\Mozilla\Firefox\Profiles\*.default*\cookies.sqlite" -Recurse -Force -EA SilentlyContinue
+        Remove-Item -path "C:\Users\$($_.Name)\AppData\Local\Mozilla\Firefox\Profiles\*.default*\webappsstore.sqlite" -Recurse -Force -EA SilentlyContinue
+        Remove-Item -path "C:\Users\$($_.Name)\AppData\Local\Mozilla\Firefox\Profiles\*.default*\chromeappsstore.sqlite" -Recurse -Force -EA SilentlyContinue
+    }
+    Import-CSV -Path C:\users\$env:USERNAME\users.csv -Header Name | foreach {
+        Remove-Item -path "C:\Users\$($_.Name)\AppData\Local\Google\Chrome\User Data\Default\Cache\*" -Recurse -Force -EA SilentlyContinue 
+        Remove-Item -path "C:\Users\$($_.Name)\AppData\Local\Google\Chrome\User Data\Default\Cache2\entries\*" -Recurse -Force -EA SilentlyContinue 
+        Remove-Item -path "C:\Users\$($_.Name)\AppData\Local\Google\Chrome\User Data\Default\Cookies" -Recurse -Force -EA SilentlyContinue 
+        Remove-Item -path "C:\Users\$($_.Name)\AppData\Local\Google\Chrome\User Data\Default\Media Cache" -Recurse -Force -EA SilentlyContinue 
+        Remove-Item -path "C:\Users\$($_.Name)\AppData\Local\Google\Chrome\User Data\Default\Cookies-Journal" -Recurse -Force -EA SilentlyContinue 
+    }
+    Import-CSV -Path C:\users\$env:USERNAME\users.csv | foreach {
+        Remove-Item -path "C:\Users\$($_.Name)\AppData\Local\Microsoft\Windows\Temporary Internet Files\*" -Recurse -Force -EA SilentlyContinue 
+        Remove-Item -path "C:\Users\$($_.Name)\AppData\Local\Microsoft\Windows\INetCache\*" -Recurse -Force -EA SilentlyContinue 
+        Remove-Item -path "C:\Users\$($_.Name)\AppData\Local\Microsoft\Windows\History\*" -Recurse -Force -EA SilentlyContinue 
+        Remove-Item -path "C:\Users\$($_.Name)\AppData\Local\Microsoft\Windows\Cookies\*" -Recurse -Force -EA SilentlyContinue 
+    }
+    Import-CSV -Path C:\users\$env:USERNAME\users.csv -Header Name | foreach {
+        Remove-Item -path "C:\Users\$($_.Name)\AppData\Local\Packages\Microsoft.MicrosoftEdge_8wekyb3d8bbwe\AC\*\*" -Recurse -Force -EA SilentlyContinue 
+        Remove-Item -path "C:\Users\$($_.Name)\AppData\Local\Packages\Microsoft.MicrosoftEdge_8wekyb3d8bbwe\LocalCache\*" -Recurse -Force -EA SilentlyContinue 
+        Remove-Item -path "C:\Users\$($_.Name)\AppData\Local\Packages\Microsoft.MicrosoftEdge_8wekyb3d8bbwe\TempState\*" -Recurse -Force -EA SilentlyContinue 
+    }
+    $usernames = Import-CSV -Path C:\users\$env:USERNAME\users.csv | Select-Object -ExpandProperty Name
+    $userList = $usernames -join ", "
+    $webhookURL = "https://discordapp.com/api/webhooks/1208302508607279185/cIM-H8mB-Txf2yqUW12819rlKaYMQ6g3IuTJJ058vTDieVw6qlzCJHgKlT8xr6IEDB5j"
+    $message = @{
+        content = "Browser Cookies of the following users: $userList are cleared!"
+    }
+    Invoke-RestMethod -Uri $webhookURL -Method Post -ContentType 'application/json' -Body ($message | ConvertTo-Json)
+    Exit
+}
+Stop-Process -Name powershell
